@@ -434,7 +434,7 @@ local function iniciarHubPrincipal()
 		StatsContentContainer.Visible = true
 	end)
 
-	-- Aba TikTok Redesenhada Retangular
+	-- Aba TikTok Redesenhada Retangular (Título alterado para "TikTok")
 	local TikTokFrame = Instance.new("Frame")
 	TikTokFrame.Name = "TikTokFrame"
 	TikTokFrame.Size = UDim2.new(0, 360, 0, 130)
@@ -476,7 +476,7 @@ local function iniciarHubPrincipal()
 	TikTokTitle.Position = UDim2.new(0, 14, 0, 0)
 	TikTokTitle.BackgroundTransparency = 1
 	TikTokTitle.Font = Enum.Font.SourceSansBold
-	TikTokTitle.Text = "TikTok Hub"
+	TikTokTitle.Text = "TikTok"
 	TikTokTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 	TikTokTitle.TextSize = 15
 	TikTokTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -1178,7 +1178,7 @@ else
 	KeyTitle.Position = UDim2.new(0, 14, 0, 0)
 	KeyTitle.BackgroundTransparency = 1
 	KeyTitle.Font = Enum.Font.SourceSansBold
-	KeyTitle.Text = "Lufin Bot - Key System"
+	KeyTitle.Text = "Lufin Key System"
 	KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 	KeyTitle.TextSize = 15
 	KeyTitle.TextXAlignment = Enum.TextXAlignment.Left
