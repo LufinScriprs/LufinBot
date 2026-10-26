@@ -69,8 +69,6 @@ local function abrirPainel(frame)
 		tamanhoAlvo = UDim2.new(0, 480, 0, 340)
 	elseif frame.Name == "StatsFrame" then
 		tamanhoAlvo = UDim2.new(0, 230, 0, 145)
-	elseif frame.Name == "TikTokFrame" then
-		tamanhoAlvo = UDim2.new(0, 360, 0, 130)
 	elseif frame.Name == "KeyFrame" then
 		tamanhoAlvo = UDim2.new(0, 360, 0, 230)
 	end
@@ -98,29 +96,6 @@ end
 
 -- Função para iniciar o Hub Principal após a Verificação da Key
 local function iniciarHubPrincipal()
-	task.spawn(function()
-		pcall(function()
-			StarterGui:SetCore("SendNotification", {
-				Title = "Script Carregado",
-				Text = "Explore outros hubs em TKTk @luizwzcod !",
-				Duration = 6
-			})
-		end)
-	end)
-
-	-- Enviar saudação no chat do jogo
-	task.spawn(function()
-		pcall(function()
-			local chatRemote = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
-			if chatRemote then
-				local sayMessage = chatRemote:FindFirstChild("SayMessageRequest")
-				if sayMessage then
-					sayMessage:FireServer("Oi " .. LocalPlayer.Name .. " ! Lufin Carregado, explore outros hubs em TKTk @luizwzcod !", "All")
-				end
-			end
-		end)
-	end)
-
 	local ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "SatanKillaHub"
 	ScreenGui.Parent = CoreGui
@@ -259,7 +234,7 @@ local function iniciarHubPrincipal()
 	ScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(110, 110, 160)
 	ScrollingFrame.Parent = MainFrame
 
-	-- Painel de Estatísticas Redesenhado (Sem os botões +, ⚙️ e 👍)
+	-- Painel de Estatísticas Redesenhado (Título alterado para "Status")
 	local StatsFrame = Instance.new("Frame")
 	StatsFrame.Name = "StatsFrame"
 	StatsFrame.Size = UDim2.new(0, 230, 0, 145)
@@ -301,7 +276,7 @@ local function iniciarHubPrincipal()
 	StatsTitle.Position = UDim2.new(0, 12, 0, 0)
 	StatsTitle.BackgroundTransparency = 1
 	StatsTitle.Font = Enum.Font.SourceSansBold
-	StatsTitle.Text = "Status do Hub"
+	StatsTitle.Text = "Status"
 	StatsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 	StatsTitle.TextSize = 13
 	StatsTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -334,7 +309,7 @@ local function iniciarHubPrincipal()
 	StatsAimbot.Position = UDim2.new(0, 12, 0, 8)
 	StatsAimbot.BackgroundTransparency = 1
 	StatsAimbot.Font = Enum.Font.SourceSansBold
-	StatsAimbot.Text = "• Aimbot Ativo: ON"
+	StatsAimbot.Text = "• Aimbot: ON"
 	StatsAimbot.TextColor3 = Color3.fromRGB(0, 240, 0)
 	StatsAimbot.TextSize = 11
 	StatsAimbot.TextXAlignment = Enum.TextXAlignment.Left
@@ -434,103 +409,12 @@ local function iniciarHubPrincipal()
 		StatsContentContainer.Visible = true
 	end)
 
-	-- Aba TikTok Redesenhada Retangular (Título alterado para "TikTok")
-	local TikTokFrame = Instance.new("Frame")
-	TikTokFrame.Name = "TikTokFrame"
-	TikTokFrame.Size = UDim2.new(0, 360, 0, 130)
-	TikTokFrame.Position = UDim2.new(0.5, -180, 0.5, -65)
-	TikTokFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
-	TikTokFrame.BackgroundTransparency = 0.05
-	TikTokFrame.BorderSizePixel = 0
-	TikTokFrame.Visible = false
-	TikTokFrame.Parent = ScreenGui
-
-	local TikTokCorner = Instance.new("UICorner")
-	TikTokCorner.CornerRadius = UDim.new(0, 10)
-	TikTokCorner.Parent = TikTokFrame
-
-	local TikTokStroke = Instance.new("UIStroke")
-	TikTokStroke.Color = Color3.fromRGB(60, 60, 90)
-	TikTokStroke.Thickness = 1.2
-	TikTokStroke.Parent = TikTokFrame
-
-	local TikTokTitleBar = Instance.new("Frame")
-	TikTokTitleBar.Size = UDim2.new(1, 0, 0, 34)
-	TikTokTitleBar.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
-	TikTokTitleBar.BorderSizePixel = 0
-	TikTokTitleBar.Parent = TikTokFrame
-
-	local TikTokTitleCorner = Instance.new("UICorner")
-	TikTokTitleCorner.CornerRadius = UDim.new(0, 10)
-	TikTokTitleCorner.Parent = TikTokTitleBar
-
-	local TikTokTitleFix = Instance.new("Frame")
-	TikTokTitleFix.Size = UDim2.new(1, 0, 0, 8)
-	TikTokTitleFix.Position = UDim2.new(0, 0, 1, -8)
-	TikTokTitleFix.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
-	TikTokTitleFix.BorderSizePixel = 0
-	TikTokTitleFix.Parent = TikTokTitleBar
-
-	local TikTokTitle = Instance.new("TextLabel")
-	TikTokTitle.Size = UDim2.new(1, -40, 1, 0)
-	TikTokTitle.Position = UDim2.new(0, 14, 0, 0)
-	TikTokTitle.BackgroundTransparency = 1
-	TikTokTitle.Font = Enum.Font.SourceSansBold
-	TikTokTitle.Text = "TikTok"
-	TikTokTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TikTokTitle.TextSize = 15
-	TikTokTitle.TextXAlignment = Enum.TextXAlignment.Left
-	TikTokTitle.Parent = TikTokTitleBar
-
-	local TikTokCloseBtn = Instance.new("TextButton")
-	TikTokCloseBtn.Size = UDim2.new(0, 24, 0, 24)
-	TikTokCloseBtn.Position = UDim2.new(1, -32, 0, 5)
-	TikTokCloseBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-	TikTokCloseBtn.Font = Enum.Font.SourceSansBold
-	TikTokCloseBtn.Text = "X"
-	TikTokCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TikTokCloseBtn.TextSize = 11
-	TikTokCloseBtn.Parent = TikTokTitleBar
-
-	local TikTokCloseCorner = Instance.new("UICorner")
-	TikTokCloseCorner.CornerRadius = UDim.new(0, 6)
-	TikTokCloseCorner.Parent = TikTokCloseBtn
-	applyButtonAnimation(TikTokCloseBtn)
-
-	local CopyLinkBtn = Instance.new("TextButton")
-	CopyLinkBtn.Size = UDim2.new(0, 324, 0, 46)
-	CopyLinkBtn.Position = UDim2.new(0.5, -162, 0, 56)
-	CopyLinkBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	CopyLinkBtn.Font = Enum.Font.SourceSansBold
-	CopyLinkBtn.Text = "Copiar TKTk @luizwzcod"
-	CopyLinkBtn.TextColor3 = Color3.fromRGB(250, 250, 255)
-	CopyLinkBtn.TextSize = 14
-	CopyLinkBtn.Parent = TikTokFrame
-
-	local CopyLinkCorner = Instance.new("UICorner")
-	CopyLinkCorner.CornerRadius = UDim.new(0, 8)
-	CopyLinkCorner.Parent = CopyLinkBtn
-	applyButtonAnimation(CopyLinkBtn)
-
-	CopyLinkBtn.MouseButton1Click:Connect(function()
-		pcall(function()
-			setclipboard("www.tiktok.com/@luizwzcod")
-		end)
-		CopyLinkBtn.Text = "Link Copiado! ✅"
-		task.wait(1.5)
-		CopyLinkBtn.Text = "Copiar TKTk @luizwzcod"
-	end)
-
-	TikTokCloseBtn.MouseButton1Click:Connect(function()
-		fecharPainel(TikTokFrame, true)
-	end)
-
 	local function updateStatsDisplay()
 		if aimbotEnabled then
-			StatsAimbot.Text = "• Aimbot Ativo: ON"
+			StatsAimbot.Text = "• Aimbot: ON"
 			StatsAimbot.TextColor3 = Color3.fromRGB(0, 240, 0)
 		else
-			StatsAimbot.Text = "• Aimbot Ativo: OFF"
+			StatsAimbot.Text = "• Aimbot: OFF"
 			StatsAimbot.TextColor3 = Color3.fromRGB(240, 60, 60)
 		end
 		StatsSmooth.Text = "• Smoothness: " .. smoothness
@@ -967,7 +851,6 @@ local function iniciarHubPrincipal()
 		
 		MainFrame.Visible = false
 		abrirPainel(StatsFrame)
-		abrirPainel(TikTokFrame)
 		updateStatsDisplay()
 		OpenButton.Visible = true
 	end)
