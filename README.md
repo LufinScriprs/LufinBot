@@ -1,8 +1,3 @@
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-	Redesigned with movable Status UI, compact sizing, gear/save buttons, collapse/expand header controls.
-]]
-
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -10,6 +5,7 @@ local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 local Cam = game.Workspace.CurrentCamera
 
@@ -23,7 +19,7 @@ local transparencyActive = false
 local originalTransparencies = {}
 
 -- Arquivo para Salvar a Key
-local saveFileName = "SatanKilla_KeyData.json"
+local saveFileName = "Key_Data.json"
 local globalExpiresAt = 0
 
 -- Função utilitária para Tween super fluido (Quart Out)
@@ -59,22 +55,16 @@ local function applyButtonAnimation(btn)
 end
 
 -- Função para abrir um painel suavemente
-local function abrirPainel(frame)
+local function abrirPainel(frame, baseW, baseH)
 	frame.Visible = true
 	frame.Size = UDim2.new(0, 0, 0, 0)
 	frame.BackgroundTransparency = 1
 	
-	local tamanhoAlvo = UDim2.new(0, 360, 0, 260)
-	if frame.Name == "MainFrame" then
-		tamanhoAlvo = UDim2.new(0, 480, 0, 340)
-	elseif frame.Name == "StatsFrame" then
-		tamanhoAlvo = UDim2.new(0, 230, 0, 145)
-	elseif frame.Name == "KeyFrame" then
-		tamanhoAlvo = UDim2.new(0, 360, 0, 230)
-	end
+	local w = baseW or 360
+	local h = baseH or 260
 	
 	animar(frame, 0.3, {
-		Size = tamanhoAlvo,
+		Size = UDim2.new(0, w, 0, h),
 		BackgroundTransparency = 0.05
 	})
 end
@@ -94,6 +84,34 @@ local function fecharPainel(frame, destroyOnComplete)
 	end)
 end
 
+-- Função para Server Hop (Busca servidor vazio/menos lotado)
+local function serverHop()
+	local servers = {}
+	local cursor = ""
+	pcall(function()
+		repeat
+			local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and "&cursor=" .. cursor or "")
+			local req = HttpService:JSONDecode(game:HttpGet(url))
+			cursor = req.nextPageCursor or ""
+			for _, s in ipairs(req.data) do
+				if s.playing < s.maxPlayers and s.id ~= game.JobId then
+					table.insert(servers, s)
+				end
+			end
+		until cursor == "" or #servers > 0
+	end)
+	
+	if #servers > 0 then
+		-- Ordena do menor número de jogadores para o maior (prioriza vazios)
+		table.sort(servers, function(a, b)
+			return a.playing < b.playing
+		end)
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[1].id, LocalPlayer)
+	else
+		TeleportService:Teleport(game.PlaceId, LocalPlayer)
+	end
+end
+
 -- Função para iniciar o Hub Principal após a Verificação da Key
 local function iniciarHubPrincipal()
 	local ScreenGui = Instance.new("ScreenGui")
@@ -109,7 +127,29 @@ local function iniciarHubPrincipal()
 	LoadingBackground.ZIndex = 10
 	LoadingBackground.Parent = ScreenGui
 
-	-- Botão de Abertura Circular Flutuante com Sombra e Gradiente
+	-- Botão de Suporte (🎮) do lado esquerdo do OpenButton
+	local SupportButton = Instance.new("TextButton")
+	SupportButton.Size = UDim2.new(0, 42, 0, 42)
+	SupportButton.Position = UDim2.new(0.5, -70, 0, 19)
+	SupportButton.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+	SupportButton.Font = Enum.Font.SourceSansBold
+	SupportButton.Text = "🎮"
+	SupportButton.TextSize = 20
+	SupportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	SupportButton.Visible = false
+	SupportButton.Parent = ScreenGui
+
+	local SupportBtnCorner = Instance.new("UICorner")
+	SupportBtnCorner.CornerRadius = UDim.new(1, 0)
+	SupportBtnCorner.Parent = SupportButton
+
+	local SupportBtnStroke = Instance.new("UIStroke")
+	SupportBtnStroke.Color = Color3.fromRGB(90, 90, 140)
+	SupportBtnStroke.Thickness = 2
+	SupportBtnStroke.Parent = SupportButton
+	applyButtonAnimation(SupportButton)
+
+	-- Botão de Abertura Circular Flutuante com Sombra e Gradiente (Centro)
 	local OpenButton = Instance.new("ImageButton")
 	OpenButton.Size = UDim2.new(0, 56, 0, 56)
 	OpenButton.Position = UDim2.new(0.5, -28, 0, 12)
@@ -126,6 +166,28 @@ local function iniciarHubPrincipal()
 	OpenBtnStroke.Color = Color3.fromRGB(90, 90, 140)
 	OpenBtnStroke.Thickness = 2
 	OpenBtnStroke.Parent = OpenButton
+
+	-- Botão de Configurações com Emoji ⚙️ do lado direito do OpenButton
+	local GearButton = Instance.new("TextButton")
+	GearButton.Size = UDim2.new(0, 42, 0, 42)
+	GearButton.Position = UDim2.new(0.5, 28, 0, 19)
+	GearButton.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+	GearButton.Font = Enum.Font.SourceSansBold
+	GearButton.Text = "⚙️"
+	GearButton.TextSize = 20
+	GearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	GearButton.Visible = false
+	GearButton.Parent = ScreenGui
+
+	local GearBtnCorner = Instance.new("UICorner")
+	GearBtnCorner.CornerRadius = UDim.new(1, 0)
+	GearBtnCorner.Parent = GearButton
+
+	local GearBtnStroke = Instance.new("UIStroke")
+	GearBtnStroke.Color = Color3.fromRGB(90, 90, 140)
+	GearBtnStroke.Thickness = 2
+	GearBtnStroke.Parent = GearButton
+	applyButtonAnimation(GearButton)
 
 	-- Imagem de Loading Inicial
 	local LoadingImage = Instance.new("ImageLabel")
@@ -152,7 +214,7 @@ local function iniciarHubPrincipal()
 	LoadingTextLabel.Position = UDim2.new(0, 0, 0.45, 45)
 	LoadingTextLabel.BackgroundTransparency = 1
 	LoadingTextLabel.Font = Enum.Font.SourceSansBold
-	LoadingTextLabel.Text = "Carregando Lufin Bot ! ✌️"
+	LoadingTextLabel.Text = "Loading Lufin Bot ! ✌️"
 	LoadingTextLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
 	LoadingTextLabel.TextSize = 16
 	LoadingTextLabel.TextTransparency = 1
@@ -160,7 +222,7 @@ local function iniciarHubPrincipal()
 	LoadingTextLabel.ZIndex = 11
 	LoadingTextLabel.Parent = ScreenGui
 
-	-- Painel Principal (Lufin Bot) Estilo Retangular Rayfield Melhorado
+	-- Painel Principal (Lufin Bot)
 	local MainFrame = Instance.new("Frame")
 	MainFrame.Name = "MainFrame"
 	MainFrame.Size = UDim2.new(0, 480, 0, 340)
@@ -180,7 +242,7 @@ local function iniciarHubPrincipal()
 	MainStroke.Thickness = 1.5
 	MainStroke.Parent = MainFrame
 
-	-- Barra de Título Estilo Rayfield
+	-- Barra de Título
 	local TitleBar = Instance.new("Frame")
 	TitleBar.Size = UDim2.new(1, 0, 0, 42)
 	TitleBar.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
@@ -234,7 +296,246 @@ local function iniciarHubPrincipal()
 	ScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(110, 110, 160)
 	ScrollingFrame.Parent = MainFrame
 
-	-- Painel de Estatísticas Redesenhado (Título alterado para "Status")
+	-- Painel de Configurações (Configs) com o Botão Server Hop
+	local ConfigFrame = Instance.new("Frame")
+	ConfigFrame.Name = "ConfigFrame"
+	ConfigFrame.Size = UDim2.new(0, 320, 0, 160)
+	ConfigFrame.Position = UDim2.new(0.5, -160, 0.5, -80)
+	ConfigFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+	ConfigFrame.BackgroundTransparency = 0.05
+	ConfigFrame.BorderSizePixel = 0
+	ConfigFrame.Visible = false
+	ConfigFrame.Parent = ScreenGui
+
+	local ConfigCorner = Instance.new("UICorner")
+	ConfigCorner.CornerRadius = UDim.new(0, 10)
+	ConfigCorner.Parent = ConfigFrame
+
+	local ConfigStroke = Instance.new("UIStroke")
+	ConfigStroke.Color = Color3.fromRGB(60, 60, 90)
+	ConfigStroke.Thickness = 1.5
+	ConfigStroke.Parent = ConfigFrame
+
+	local ConfigTitleBar = Instance.new("Frame")
+	ConfigTitleBar.Size = UDim2.new(1, 0, 0, 38)
+	ConfigTitleBar.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
+	ConfigTitleBar.BorderSizePixel = 0
+	ConfigTitleBar.Parent = ConfigFrame
+
+	local ConfigTitleCorner = Instance.new("UICorner")
+	ConfigTitleCorner.CornerRadius = UDim.new(0, 10)
+	ConfigTitleCorner.Parent = ConfigTitleBar
+
+	local ConfigTitleFix = Instance.new("Frame")
+	ConfigTitleFix.Size = UDim2.new(1, 0, 0, 8)
+	ConfigTitleFix.Position = UDim2.new(0, 0, 1, -8)
+	ConfigTitleFix.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
+	ConfigTitleFix.BorderSizePixel = 0
+	ConfigTitleFix.Parent = ConfigTitleBar
+
+	local ConfigTitle = Instance.new("TextLabel")
+	ConfigTitle.Size = UDim2.new(1, -40, 1, 0)
+	ConfigTitle.Position = UDim2.new(0, 14, 0, 0)
+	ConfigTitle.BackgroundTransparency = 1
+	ConfigTitle.Font = Enum.Font.SourceSansBold
+	ConfigTitle.Text = "Configs"
+	ConfigTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	ConfigTitle.TextSize = 15
+	ConfigTitle.TextXAlignment = Enum.TextXAlignment.Left
+	ConfigTitle.Parent = ConfigTitleBar
+
+	local ConfigCloseBtn = Instance.new("TextButton")
+	ConfigCloseBtn.Size = UDim2.new(0, 24, 0, 24)
+	ConfigCloseBtn.Position = UDim2.new(1, -30, 0, 7)
+	ConfigCloseBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+	ConfigCloseBtn.Font = Enum.Font.SourceSansBold
+	ConfigCloseBtn.Text = "X"
+	ConfigCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	ConfigCloseBtn.TextSize = 11
+	ConfigCloseBtn.Parent = ConfigTitleBar
+
+	local ConfigCloseCorner = Instance.new("UICorner")
+	ConfigCloseCorner.CornerRadius = UDim.new(0, 6)
+	ConfigCloseCorner.Parent = ConfigCloseBtn
+	applyButtonAnimation(ConfigCloseBtn)
+
+	-- Botão Server Hop dentro da aba Configs
+	local ServerHopBtn = Instance.new("TextButton")
+	ServerHopBtn.Size = UDim2.new(1, -30, 0, 45)
+	ServerHopBtn.Position = UDim2.new(0, 15, 0, 60)
+	ServerHopBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+	ServerHopBtn.Font = Enum.Font.SourceSansBold
+	ServerHopBtn.Text = "Server Hop"
+	ServerHopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	ServerHopBtn.TextSize = 14
+	ServerHopBtn.Parent = ConfigFrame
+
+	local ServerHopCorner = Instance.new("UICorner")
+	ServerHopCorner.CornerRadius = UDim.new(0, 8)
+	ServerHopCorner.Parent = ServerHopBtn
+	applyButtonAnimation(ServerHopBtn)
+
+	ServerHopBtn.MouseButton1Click:Connect(function()
+		ServerHopBtn.Text = "Finding Empty Server..."
+		serverHop()
+	end)
+
+	-- Painel de Suporte (Support Me) atualizado
+	local SupportFrame = Instance.new("Frame")
+	SupportFrame.Name = "SupportFrame"
+	SupportFrame.Size = UDim2.new(0, 340, 0, 290)
+	SupportFrame.Position = UDim2.new(0.5, -170, 0.5, -145)
+	SupportFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+	SupportFrame.BackgroundTransparency = 0.05
+	SupportFrame.BorderSizePixel = 0
+	SupportFrame.Visible = false
+	SupportFrame.Parent = ScreenGui
+
+	local SupportCorner = Instance.new("UICorner")
+	SupportCorner.CornerRadius = UDim.new(0, 10)
+	SupportCorner.Parent = SupportFrame
+
+	local SupportStroke = Instance.new("UIStroke")
+	SupportStroke.Color = Color3.fromRGB(60, 60, 90)
+	SupportStroke.Thickness = 1.5
+	SupportStroke.Parent = SupportFrame
+
+	local SupportTitleBar = Instance.new("Frame")
+	SupportTitleBar.Size = UDim2.new(1, 0, 0, 38)
+	SupportTitleBar.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
+	SupportTitleBar.BorderSizePixel = 0
+	SupportTitleBar.Parent = SupportFrame
+
+	local SupportTitleCorner = Instance.new("UICorner")
+	SupportTitleCorner.CornerRadius = UDim.new(0, 10)
+	SupportTitleCorner.Parent = SupportTitleBar
+
+	local SupportTitleFix = Instance.new("Frame")
+	SupportTitleFix.Size = UDim2.new(1, 0, 0, 8)
+	SupportTitleFix.Position = UDim2.new(0, 0, 1, -8)
+	SupportTitleFix.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
+	SupportTitleFix.BorderSizePixel = 0
+	SupportTitleFix.Parent = SupportTitleBar
+
+	local SupportTitle = Instance.new("TextLabel")
+	SupportTitle.Size = UDim2.new(1, -40, 1, 0)
+	SupportTitle.Position = UDim2.new(0, 14, 0, 0)
+	SupportTitle.BackgroundTransparency = 1
+	SupportTitle.Font = Enum.Font.SourceSansBold
+	SupportTitle.Text = "Support Me"
+	SupportTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	SupportTitle.TextSize = 15
+	SupportTitle.TextXAlignment = Enum.TextXAlignment.Left
+	SupportTitle.Parent = SupportTitleBar
+
+	local SupportCloseBtn = Instance.new("TextButton")
+	SupportCloseBtn.Size = UDim2.new(0, 24, 0, 24)
+	SupportCloseBtn.Position = UDim2.new(1, -30, 0, 7)
+	SupportCloseBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+	SupportCloseBtn.Font = Enum.Font.SourceSansBold
+	SupportCloseBtn.Text = "X"
+	SupportCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	SupportCloseBtn.TextSize = 11
+	SupportCloseBtn.Parent = SupportTitleBar
+
+	local SupportCloseCorner = Instance.new("UICorner")
+	SupportCloseCorner.CornerRadius = UDim.new(0, 6)
+	SupportCloseCorner.Parent = SupportCloseBtn
+	applyButtonAnimation(SupportCloseBtn)
+
+	local SupportContent = Instance.new("Frame")
+	SupportContent.Size = UDim2.new(1, -20, 1, -50)
+	SupportContent.Position = UDim2.new(0, 10, 0, 45)
+	SupportContent.BackgroundTransparency = 1
+	SupportContent.Parent = SupportFrame
+
+	local ProfileImg = Instance.new("ImageLabel")
+	ProfileImg.Size = UDim2.new(0, 60, 0, 60)
+	ProfileImg.Position = UDim2.new(0.5, -30, 0, 5)
+	ProfileImg.BackgroundTransparency = 1
+	ProfileImg.Image = "rbxthumb://type=AvatarHeadShot&id=11899601049&w=150&h=150"
+	ProfileImg.Parent = SupportContent
+
+	local ProfileImgCorner = Instance.new("UICorner")
+	ProfileImgCorner.CornerRadius = UDim.new(1, 0)
+	ProfileImgCorner.Parent = ProfileImg
+
+	local ProfileImgStroke = Instance.new("UIStroke")
+	ProfileImgStroke.Color = Color3.fromRGB(90, 90, 140)
+	ProfileImgStroke.Thickness = 2
+	ProfileImgStroke.Parent = ProfileImg
+
+	local SupportText1 = Instance.new("TextLabel")
+	SupportText1.Size = UDim2.new(1, 0, 0, 20)
+	SupportText1.Position = UDim2.new(0, 0, 0, 70)
+	SupportText1.BackgroundTransparency = 1
+	SupportText1.Font = Enum.Font.SourceSansBold
+	SupportText1.Text = "Follow me on Roblox for more Script Updates"
+	SupportText1.TextColor3 = Color3.fromRGB(240, 240, 255)
+	SupportText1.TextSize = 13
+	SupportText1.TextXAlignment = Enum.TextXAlignment.Center
+	SupportText1.Parent = SupportContent
+
+	local SupportText2 = Instance.new("TextLabel")
+	SupportText2.Size = UDim2.new(1, 0, 0, 20)
+	SupportText2.Position = UDim2.new(0, 0, 0, 93)
+	SupportText2.BackgroundTransparency = 1
+	SupportText2.Font = Enum.Font.SourceSansBold
+	SupportText2.Text = "@LuizAccount15"
+	SupportText2.TextColor3 = Color3.fromRGB(0, 200, 255)
+	SupportText2.TextSize = 14
+	SupportText2.TextXAlignment = Enum.TextXAlignment.Center
+	SupportText2.Parent = SupportContent
+
+	-- @LufinScripts em azul logo abaixo
+	local ScriptBloxUserLabel = Instance.new("TextLabel")
+	ScriptBloxUserLabel.Size = UDim2.new(1, 0, 0, 20)
+	ScriptBloxUserLabel.Position = UDim2.new(0, 0, 0, 115)
+	ScriptBloxUserLabel.BackgroundTransparency = 1
+	ScriptBloxUserLabel.Font = Enum.Font.SourceSansBold
+	ScriptBloxUserLabel.Text = "@LufinScripts"
+	ScriptBloxUserLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+	ScriptBloxUserLabel.TextSize = 14
+	ScriptBloxUserLabel.TextXAlignment = Enum.TextXAlignment.Center
+	ScriptBloxUserLabel.Parent = SupportContent
+
+	-- Texto inferior solicitado
+	local SupportText3 = Instance.new("TextLabel")
+	SupportText3.Size = UDim2.new(1, 0, 0, 20)
+	SupportText3.Position = UDim2.new(0, 0, 0, 142)
+	SupportText3.BackgroundTransparency = 1
+	SupportText3.Font = Enum.Font.SourceSansBold
+	SupportText3.Text = "Or Follow me On ScriptBlox"
+	SupportText3.TextColor3 = Color3.fromRGB(240, 240, 255)
+	SupportText3.TextSize = 13
+	SupportText3.TextXAlignment = Enum.TextXAlignment.Center
+	SupportText3.Parent = SupportContent
+
+	GearButton.MouseButton1Click:Connect(function()
+		if ConfigFrame.Visible then
+			fecharPainel(ConfigFrame, false)
+		else
+			abrirPainel(ConfigFrame, 320, 160)
+		end
+	end)
+
+	ConfigCloseBtn.MouseButton1Click:Connect(function()
+		fecharPainel(ConfigFrame, false)
+	end)
+
+	SupportButton.MouseButton1Click:Connect(function()
+		if SupportFrame.Visible then
+			fecharPainel(SupportFrame, false)
+		else
+			abrirPainel(SupportFrame, 340, 290)
+		end
+	end)
+
+	SupportCloseBtn.MouseButton1Click:Connect(function()
+		fecharPainel(SupportFrame, false)
+	end)
+
+	-- Painel de Estatísticas Redesenhado (Status)
 	local StatsFrame = Instance.new("Frame")
 	StatsFrame.Name = "StatsFrame"
 	StatsFrame.Size = UDim2.new(0, 230, 0, 145)
@@ -331,7 +632,7 @@ local function iniciarHubPrincipal()
 	StatsCamFov.Position = UDim2.new(0, 12, 0, 44)
 	StatsCamFov.BackgroundTransparency = 1
 	StatsCamFov.Font = Enum.Font.SourceSansBold
-	StatsCamFov.Text = "• Campo de visão: " .. math.floor(Cam.FieldOfView)
+	StatsCamFov.Text = "• Camera FOV: " .. math.floor(Cam.FieldOfView)
 	StatsCamFov.TextColor3 = Color3.fromRGB(210, 210, 220)
 	StatsCamFov.TextSize = 11
 	StatsCamFov.TextXAlignment = Enum.TextXAlignment.Left
@@ -342,7 +643,7 @@ local function iniciarHubPrincipal()
 	StatsFovSize.Position = UDim2.new(0, 12, 0, 62)
 	StatsFovSize.BackgroundTransparency = 1
 	StatsFovSize.Font = Enum.Font.SourceSansBold
-	StatsFovSize.Text = "• Tamanho Fov: " .. fov
+	StatsFovSize.Text = "• FOV Size: " .. fov
 	StatsFovSize.TextColor3 = Color3.fromRGB(210, 210, 220)
 	StatsFovSize.TextSize = 11
 	StatsFovSize.TextXAlignment = Enum.TextXAlignment.Left
@@ -418,8 +719,8 @@ local function iniciarHubPrincipal()
 			StatsAimbot.TextColor3 = Color3.fromRGB(240, 60, 60)
 		end
 		StatsSmooth.Text = "• Smoothness: " .. smoothness
-		StatsCamFov.Text = "• Campo de visão: " .. math.floor(cameraFov)
-		StatsFovSize.Text = "• Tamanho Fov: " .. fov
+		StatsCamFov.Text = "• Camera FOV: " .. math.floor(cameraFov)
+		StatsFovSize.Text = "• FOV Size: " .. fov
 		if espActive then
 			StatsEsp.Text = "• ESP: ON"
 			StatsEsp.TextColor3 = Color3.fromRGB(0, 240, 0)
@@ -436,13 +737,13 @@ local function iniciarHubPrincipal()
 		end
 	end
 
-	-- Elementos internos do ScrollingFrame (Layout Rayfield Largo)
+	-- Elementos internos do ScrollingFrame (Em Inglês)
 	local AimLabel = Instance.new("TextLabel")
 	AimLabel.Size = UDim2.new(0, 420, 0, 24)
 	AimLabel.Position = UDim2.new(0, 15, 0, 10)
 	AimLabel.BackgroundTransparency = 1
 	AimLabel.Font = Enum.Font.SourceSansBold
-	AimLabel.Text = "Configurações de Aim"
+	AimLabel.Text = "Aim Settings"
 	AimLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
 	AimLabel.TextSize = 15
 	AimLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -501,7 +802,7 @@ local function iniciarHubPrincipal()
 	FovSizeLabel.Position = UDim2.new(0, 15, 0, 134)
 	FovSizeLabel.BackgroundTransparency = 1
 	FovSizeLabel.Font = Enum.Font.SourceSansBold
-	FovSizeLabel.Text = "Tamanho Fov: 40"
+	FovSizeLabel.Text = "FOV Size: 40"
 	FovSizeLabel.TextColor3 = Color3.fromRGB(210, 210, 220)
 	FovSizeLabel.TextSize = 13
 	FovSizeLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -534,7 +835,7 @@ local function iniciarHubPrincipal()
 	CamFovLabel.Position = UDim2.new(0, 15, 0, 180)
 	CamFovLabel.BackgroundTransparency = 1
 	CamFovLabel.Font = Enum.Font.SourceSansBold
-	CamFovLabel.Text = "Campo de Visão: " .. math.floor(Cam.FieldOfView)
+	CamFovLabel.Text = "Camera FOV: " .. math.floor(Cam.FieldOfView)
 	CamFovLabel.TextColor3 = Color3.fromRGB(210, 210, 220)
 	CamFovLabel.TextSize = 13
 	CamFovLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -567,7 +868,7 @@ local function iniciarHubPrincipal()
 	VisualsLabel.Position = UDim2.new(0, 15, 0, 226)
 	VisualsLabel.BackgroundTransparency = 1
 	VisualsLabel.Font = Enum.Font.SourceSansBold
-	VisualsLabel.Text = "Visuals e ESP"
+	VisualsLabel.Text = "Visuals & ESP"
 	VisualsLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
 	VisualsLabel.TextSize = 15
 	VisualsLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -607,7 +908,7 @@ local function iniciarHubPrincipal()
 		if MainFrame.Visible then
 			fecharPainel(MainFrame, false)
 		else
-			abrirPainel(MainFrame)
+			abrirPainel(MainFrame, 480, 340)
 		end
 	end)
 
@@ -663,8 +964,8 @@ local function iniciarHubPrincipal()
 			local percentage = math.clamp((mousePos - barPos) / barSize, 0, 1)
 			
 			FovSliderBtn.Position = UDim2.new(percentage, -8, 0, -4)
-			fov = math.floor(10 + (percentage * (10000 - 10)))
-			FovSizeLabel.Text = "Tamanho Fov: " .. fov
+			fov = math.floor(10 + (percentage * (1000 - 10)))
+			FovSizeLabel.Text = "FOV Size: " .. fov
 			updateStatsDisplay()
 		end
 	end)
@@ -690,9 +991,9 @@ local function iniciarHubPrincipal()
 			local percentage = math.clamp((mousePos - barPos) / barSize, 0, 1)
 			
 			CamFovBtn.Position = UDim2.new(percentage, -8, 0, -4)
-			cameraFov = math.floor(60 + (percentage * (175 - 60)))
+			cameraFov = math.floor(60 + (percentage * (120 - 60)))
 			Cam.FieldOfView = cameraFov
-			CamFovLabel.Text = "Campo de Visão: " .. cameraFov
+			CamFovLabel.Text = "Camera FOV: " .. cameraFov
 			updateStatsDisplay()
 		end
 	end)
@@ -850,9 +1151,11 @@ local function iniciarHubPrincipal()
 		LoadingBackground:Destroy()
 		
 		MainFrame.Visible = false
-		abrirPainel(StatsFrame)
+		abrirPainel(StatsFrame, 230, 145)
 		updateStatsDisplay()
 		OpenButton.Visible = true
+		GearButton.Visible = true
+		SupportButton.Visible = true
 	end)
 
 	local maxTransparency = 0.1 
@@ -900,13 +1203,12 @@ local function iniciarHubPrincipal()
 	local function isValidTarget(model)
 		if model == LocalPlayer.Character then return false end
 		local player = Players:GetPlayerFromCharacter(model)
-		if player then
-			return player ~= LocalPlayer
-		end
-		local humanoid = model:FindFirstChildOfClass("Humanoid")
-		local head = model:FindFirstChild("Head")
-		if humanoid and head and humanoid.Health > 0 then
-			return true
+		if player and player ~= LocalPlayer then
+			local humanoid = model:FindFirstChildOfClass("Humanoid")
+			local head = model:FindFirstChild("Head")
+			if humanoid and head and humanoid.Health > 0 then
+				return true
+			end
 		end
 		return false
 	end
@@ -958,12 +1260,6 @@ local function iniciarHubPrincipal()
 			end
 		end
 
-		for _, obj in ipairs(workspace:GetChildren()) do
-			if obj:IsA("Model") and obj ~= LocalPlayer.Character then
-				checkCandidate(obj)
-			end
-		end
-
 		return nearest
 	end
 
@@ -989,7 +1285,7 @@ local function iniciarHubPrincipal()
 	end)
 end
 
--- Sistema de Key com Validação de Key_1 até KEY_24
+-- Sistema de Key com Validação no formato Key _abc123def456 (Válida por 24 Horas)
 local function verificarKeySalva()
 	local success, exists = pcall(function() return isfile and isfile(saveFileName) end)
 	if success and exists then
@@ -1072,7 +1368,7 @@ else
 	KeyTextBox.Position = UDim2.new(0.5, -162, 0, 52)
 	KeyTextBox.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
 	KeyTextBox.Font = Enum.Font.SourceSansBold
-	KeyTextBox.PlaceholderText = "Cole sua Key Aqui"
+	KeyTextBox.PlaceholderText = "Paste your Key here"
 	KeyTextBox.Text = ""
 	KeyTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 	KeyTextBox.PlaceholderColor3 = Color3.fromRGB(130, 130, 160)
@@ -1094,7 +1390,7 @@ else
 	GetKeyBtn.Position = UDim2.new(0.5, -162, 0, 104)
 	GetKeyBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	GetKeyBtn.Font = Enum.Font.SourceSansBold
-	GetKeyBtn.Text = "Pegue sua Key !"
+	GetKeyBtn.Text = "Get Key !"
 	GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	GetKeyBtn.TextSize = 13
 	GetKeyBtn.Parent = KeyFrame
@@ -1130,27 +1426,24 @@ else
 	KeyStatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 	KeyStatusLabel.Parent = KeyFrame
 
-	abrirPainel(KeyFrame)
+	abrirPainel(KeyFrame, 360, 230)
 
 	GetKeyBtn.MouseButton1Click:Connect(function()
 		pcall(function()
 			setclipboard("https://getkeyherelufin.netlify.app")
 		end)
-		GetKeyBtn.Text = "Link Copiado! ✅"
+		GetKeyBtn.Text = "Link Copied! ✅"
 		task.wait(1.5)
-		GetKeyBtn.Text = "Pegue sua Key !"
+		GetKeyBtn.Text = "Get Key !"
 	end)
 
 	VerifyKeyBtn.MouseButton1Click:Connect(function()
 		local textInput = KeyTextBox.Text
 		local isValid = false
 		
-		-- Verifica se a key está no intervalo de Key_1 até KEY_24 (case-insensitive ou formato exato)
-		if textInput:match("^[Kk][Ee][Yy]_(%d+)$") then
-			local num = tonumber(textInput:match("^[Kk][Ee][Yy]_(%d+)$"))
-			if num and num >= 1 and num <= 24 then
-				isValid = true
-			end
+		-- Valida o formato Key _ seguido de caracteres alfanuméricos (ex: Key _abc123def456)
+		if textInput:match("^%s*[Kk][Ee][Yy]%s*_%s*[%w]+%s*$") then
+			isValid = true
 		end
 
 		if isValid then
@@ -1164,7 +1457,7 @@ else
 			end)
 
 			KeyStatusLabel.TextColor3 = Color3.fromRGB(0, 240, 0)
-			KeyStatusLabel.Text = "Key Válida!"
+			KeyStatusLabel.Text = "Valid Key!"
 			task.wait(0.6)
 			fecharPainel(KeyFrame, true)
 			task.wait(0.2)
@@ -1174,6 +1467,6 @@ else
 		end
 		
 		KeyStatusLabel.TextColor3 = Color3.fromRGB(240, 60, 60)
-		KeyStatusLabel.Text = "Key Incorreta"
+		KeyStatusLabel.Text = "Incorrect Key"
 	end)
 end
